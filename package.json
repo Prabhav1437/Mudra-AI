@@ -5,6 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
+    "backend": ".venv/bin/uvicorn backend.main:app --reload --port 8000",
+    "dev:all": "concurrently -k \"npm run backend\" \"npm run dev\"",
     "start": "npm run dev",
     "build": "vite build",
     "preview": "vite preview"
