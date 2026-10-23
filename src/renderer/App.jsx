@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header.jsx';
 import Navigation from './components/Navigation.jsx';
 import DashboardTab from './components/DashboardTab.jsx';
 import AudioToIslTab from './components/AudioToIslTab.jsx';
 import IslToSpeechTab from './components/IslToSpeechTab.jsx';
+import AnnouncementsTab from './components/AnnouncementsTab.jsx';
+import DictionaryTab from './components/DictionaryTab.jsx';
 import Footer from './components/Footer.jsx';
+import { MicRecorder } from './utils/audioRecorder.js';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -21,6 +24,16 @@ export default function App() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [demoOutput, setDemoOutput] = useState(null);
   const [gestureOutput, setGestureOutput] = useState(null);
+  const [sttTestResult, setSttTestResult] = useState(null);
+  const [isTestingStt, setIsTestingStt] = useState(false);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [audioVolume, setAudioVolume] = useState(0);
+  const [isProcessingAudio, setIsProcessingAudio] = useState(false);
+
+  const recorderRef = useRef(null);
+  const timerRef = useRef(null);
 
   const checkBackendHealth = async () => {
     setBackendStatus({ state: 'checking', message: 'Connecting to FastAPI (port 8000)...' });
@@ -87,20 +100,92 @@ export default function App() {
         const data = await res.json();
         setDemoOutput({
           tokens: data.tokens,
-          gloss: data.gloss,
-          source: 'FastAPI Backend'
+          gloss: data.isl_gloss || data.gloss,
+          animations: data.animations || [],
+          source: 'FastAPI ISL Grammar Engine'
         });
       } else {
         throw new Error('Backend failed');
       }
     } catch {
+      const words = speechInput.trim().split(' ').map((w) => w.toUpperCase());
       setDemoOutput({
-        tokens: speechInput.trim().split(' ').map((w) => w.toUpperCase()),
+        tokens: words,
         gloss: speechInput.toUpperCase() + ' [ISL GLOSS]',
+        animations: words.map((w) => ({ token: w, type: 'word_sign', label: w, hindi: w, pose: 'default', duration: 1000 })),
         source: 'Client Fallback'
       });
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  const handleToggleRecord = async () => {
+    if (isRecording) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setIsRecording(false);
+      setIsProcessingAudio(true);
+
+      try {
+        const { arrayBuffer, mimeType, filename } = await recorderRef.current.stop();
+        let result = null;
+
+        if (window.electronAPI && typeof window.electronAPI.transcribeAudioBuffer === 'function') {
+          result = await window.electronAPI.transcribeAudioBuffer(
+            arrayBuffer,
+            filename,
+            selectedLang,
+            mimeType
+          );
+        } else {
+          const form = new FormData();
+          form.append('audio', new Blob([arrayBuffer], { type: mimeType }), filename);
+          if (selectedLang) form.append('language', selectedLang);
+
+          const res = await fetch('http://127.0.0.1:8000/api/stt/transcribe', {
+            method: 'POST',
+            body: form
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          result = await res.json();
+        }
+
+        if (result && result.text) {
+          setSpeechInput(result.text);
+          setDemoOutput({
+            tokens: result.tokens,
+            gloss: result.isl_gloss || result.gloss,
+            animations: result.animations || [],
+            source: `Whisper STT (${result.detected_language})`
+          });
+        }
+      } catch (err) {
+        console.error('Audio transcription error:', err);
+      } finally {
+        setIsProcessingAudio(false);
+        setAudioVolume(0);
+        recorderRef.current = null;
+      }
+    } else {
+      try {
+        const recorder = new MicRecorder({
+          onVolume: (vol) => setAudioVolume(vol)
+        });
+        await recorder.start();
+        recorderRef.current = recorder;
+        setIsRecording(true);
+        setRecordingDuration(0);
+
+        timerRef.current = setInterval(() => {
+          setRecordingDuration((prev) => prev + 1);
+        }, 1000);
+      } catch (err) {
+        console.error('Failed to access microphone:', err);
+        alert(`Microphone access error: ${err.message}`);
+      }
     }
   };
 
@@ -109,7 +194,7 @@ export default function App() {
       const res = await fetch('http://127.0.0.1:8000/api/isl-to-speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frame_count: 30 })
+        body: JSON.stringify({ gesture_hint: 'namaste' })
       });
       if (res.ok) {
         const data = await res.json();
@@ -117,10 +202,32 @@ export default function App() {
       }
     } catch {
       setGestureOutput({
-        recognized_text: 'Namaste (Offline simulated gesture)',
-        confidence: 0.92,
+        gesture_id: 'namaste',
+        recognized_text_en: 'Namaste / Hello',
+        recognized_text_hi: 'नमस्ते',
+        speech: 'Namaste, hello',
+        confidence: 0.95,
         status: 'simulated'
       });
+    }
+  };
+
+  const handleTestSTT = async () => {
+    setIsTestingStt(true);
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/stt/test', {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSttTestResult({ state: 'success', data });
+      } else {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } catch (err) {
+      setSttTestResult({ state: 'error', message: err.message });
+    } finally {
+      setIsTestingStt(false);
     }
   };
 
@@ -154,6 +261,14 @@ export default function App() {
             isTranslating={isTranslating}
             demoOutput={demoOutput}
             onTranslate={handleTranslateDemo}
+            isRecording={isRecording}
+            recordingDuration={recordingDuration}
+            audioVolume={audioVolume}
+            onToggleRecord={handleToggleRecord}
+            isProcessingAudio={isProcessingAudio}
+            sttTestResult={sttTestResult}
+            isTestingStt={isTestingStt}
+            onRunSttTest={handleTestSTT}
           />
         )}
 
@@ -162,6 +277,14 @@ export default function App() {
             gestureOutput={gestureOutput}
             onTestGestureApi={handleTestGestureAPI}
           />
+        )}
+
+        {activeTab === 'announcements' && (
+          <AnnouncementsTab />
+        )}
+
+        {activeTab === 'dictionary' && (
+          <DictionaryTab />
         )}
       </main>
 

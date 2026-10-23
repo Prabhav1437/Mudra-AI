@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Camera, Cpu, Mic, Server, Terminal } from 'lucide-react';
+import { ArrowRight, BookOpen, Camera, Cpu, Mic, Server, Terminal, Train } from 'lucide-react';
 
 export default function DashboardTab({
   versions,
@@ -15,13 +15,13 @@ export default function DashboardTab({
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
         <div className="max-w-2xl">
           <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wider text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 mb-3">
-            Modular Component Architecture
+            Full-Stack ISL Accessibility Platform
           </span>
           <h2 className="text-2xl font-bold tracking-tight text-white mb-2">
-            Welcome to Mudra AI Desktop
+            Mudra AI Complete Desktop
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed mb-6">
-            Desktop client integrated with a local high-performance FastAPI Python server. Enables AI model serving for sign gesture recognition and speech animation pipelines.
+            Bidirectional translation between spoken languages (English &amp; Hindi) and Indian Sign Language (ISL). Includes live Whisper STT voice input, real-time gesture computer vision, animated sign avatar, and railway announcements.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -47,53 +47,89 @@ export default function DashboardTab({
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div
           onClick={() => onNavigate('audio-to-isl')}
-          className="group cursor-pointer rounded-2xl border border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-indigo-500/40 p-5 transition-all backdrop-blur-lg"
+          className="group cursor-pointer rounded-2xl border border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-indigo-500/40 p-5 transition-all backdrop-blur-lg flex flex-col justify-between"
         >
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-            <Mic className="w-5 h-5" />
+          <div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Mic className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-white mb-1 flex items-center justify-between">
+              Audio &rarr; ISL
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Live microphone capture, Whisper STT, and animated avatar gestures.
+            </p>
           </div>
-          <h3 className="text-base font-semibold text-white mb-1 flex items-center justify-between">
-            Audio &rarr; Indian Sign Language
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-          </h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Transcribes spoken English and Hindi, interprets contextual intent, and synthesizes 3D avatar sign sequences via FastAPI.
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
-              POST /api/audio-to-isl
-            </span>
-            <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
-              Avatar Rigging
-            </span>
-          </div>
+          <span className="text-[10px] font-mono text-indigo-300 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 self-start">
+            Whisper Small
+          </span>
         </div>
 
         <div
           onClick={() => onNavigate('isl-to-speech')}
-          className="group cursor-pointer rounded-2xl border border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-cyan-500/40 p-5 transition-all backdrop-blur-lg"
+          className="group cursor-pointer rounded-2xl border border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-cyan-500/40 p-5 transition-all backdrop-blur-lg flex flex-col justify-between"
         >
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-            <Camera className="w-5 h-5" />
+          <div>
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Camera className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-white mb-1 flex items-center justify-between">
+              ISL &rarr; Speech
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Webcam gesture vision classification with instant speech synthesis.
+            </p>
           </div>
-          <h3 className="text-base font-semibold text-white mb-1 flex items-center justify-between">
-            Indian Sign Language &rarr; Speech
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
-          </h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Captures camera gesture streams, tracks hand landmarks, and synthesizes natural audio output in real-time.
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
-              POST /api/isl-to-speech
-            </span>
-            <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
-              Text-to-Speech
-            </span>
+          <span className="text-[10px] font-mono text-cyan-300 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 self-start">
+            Vision &amp; TTS
+          </span>
+        </div>
+
+        <div
+          onClick={() => onNavigate('announcements')}
+          className="group cursor-pointer rounded-2xl border border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-amber-500/40 p-5 transition-all backdrop-blur-lg flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Train className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-white mb-1 flex items-center justify-between">
+              Announcements
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Preset railway and emergency public broadcasts in Hindi &amp; English.
+            </p>
           </div>
+          <span className="text-[10px] font-mono text-amber-300 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 self-start">
+            Accessibility
+          </span>
+        </div>
+
+        <div
+          onClick={() => onNavigate('dictionary')}
+          className="group cursor-pointer rounded-2xl border border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-purple-500/40 p-5 transition-all backdrop-blur-lg flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-white mb-1 flex items-center justify-between">
+              ISL Dictionary
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors" />
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Interactive fingerspelling A-Z, numbers 0-9, and conversational sign lexicon.
+            </p>
+          </div>
+          <span className="text-[10px] font-mono text-purple-300 px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 self-start">
+            Reference
+          </span>
         </div>
       </div>
 
