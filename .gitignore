@@ -8,3 +8,7 @@ localfirstthings/
 .venv/
 __pycache__/
 *.pyc
+release/
+build/
+backend_dist/
+*.spec

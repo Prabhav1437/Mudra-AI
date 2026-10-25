@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
 
 GESTURE_CATALOG = {
     "namaste": {
@@ -123,12 +122,12 @@ torch_device = torch.device("mps" if torch.backends.mps.is_available() else "cpu
 torch_hand_model = TorchHandGestureCNN(num_classes=len(GESTURE_INDEX_MAP)).to(torch_device)
 torch_hand_model.eval()
 
-img_transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
+def transform_image_tensor(rgb_image: np.ndarray) -> torch.Tensor:
+    resized = cv2.resize(rgb_image, (224, 224)).astype(np.float32) / 255.0
+    mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+    std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+    norm = (resized - mean) / std
+    return torch.from_numpy(norm.transpose(2, 0, 1)).float()
 
 def decode_image_base64(image_data: str) -> Optional[np.ndarray]:
     try:
@@ -232,7 +231,7 @@ def classify_hand_with_torch(roi_info: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     rgb_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-    tensor = img_transform(rgb_crop).unsqueeze(0).to(torch_device)
+    tensor = transform_image_tensor(rgb_crop).unsqueeze(0).to(torch_device)
 
     with torch.no_grad():
         logits = torch_hand_model(tensor)

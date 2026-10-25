@@ -1,5 +1,6 @@
 {
   "name": "mudra-ai",
+  "productName": "Mudra AI",
   "version": "0.1.0",
   "description": "Bidirectional translation between spoken languages and Indian Sign Language (ISL)",
   "main": "src/main.js",
@@ -9,7 +10,8 @@
     "dev:all": "concurrently -k \"npm run backend\" \"npm run dev\"",
     "start": "npm run dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package:dmg": "npm run build && electron-builder --mac dmg --arm64"
   },
   "keywords": [
     "electron",
@@ -17,14 +19,65 @@
     "isl",
     "accessibility"
   ],
-  "author": "",
+  "author": "Mudra AI Team",
   "license": "MIT",
+  "build": {
+    "appId": "com.mudra.ai",
+    "productName": "Mudra AI",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main.js",
+      "src/preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/*"
+        ]
+      },
+      {
+        "from": "backend_entry.py",
+        "to": "backend_entry.py"
+      },
+      {
+        "from": ".venv",
+        "to": ".venv",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/*"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dmg"
+      ],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "Mudra AI Installer",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.6",
     "cross-env": "^10.1.0",
     "electron": "^44.9.3",
+    "electron-builder": "^26.18.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4",
     "wait-on": "^9.5.1"
