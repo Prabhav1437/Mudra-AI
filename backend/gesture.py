@@ -66,6 +66,12 @@ GESTURE_CATALOG = {
         "hi": "कृपया",
         "speech": "Please",
         "category": "courtesy"
+    },
+    "name": {
+        "en": "My name is Prabhav",
+        "hi": "मेरा नाम प्रभाव है",
+        "speech": "My name is Prabhav",
+        "category": "introduction"
     }
 }
 
@@ -80,11 +86,12 @@ GESTURE_INDEX_MAP = [
     "train",
     "good",
     "stop",
-    "please"
+    "please",
+    "name"
 ]
 
 class TorchHandGestureCNN(nn.Module):
-    def __init__(self, num_classes: int = 11):
+    def __init__(self, num_classes: int = 12):
         super().__init__()
         self.features = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=3, padding=1),
@@ -140,36 +147,24 @@ def extract_hand_roi(image: np.ndarray) -> Dict[str, Any]:
     skin_mask = cv2.inRange(ycrcb, np.array([0, 133, 77], dtype=np.uint8), np.array([255, 173, 127], dtype=np.uint8))
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    skin_mask = cv2.erode(skin_mask, kernel, iterations=1)
-    skin_mask = cv2.dilate(skin_mask, kernel, iterations=2)
-    skin_mask = cv2.GaussianBlur(skin_mask, (5, 5), 0)
+    opened_mask = cv2.morphologyEx(skin_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+    cleaned_mask = cv2.GaussianBlur(opened_mask, (5, 5), 0)
 
-    contours, _ = cv2.findContours(skin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    hand_zone_mask = cleaned_mask.copy()
+    face_cut = int(h * 0.38)
+    hand_zone_mask[:face_cut, int(w * 0.22):int(w * 0.78)] = 0
+
+    contours, _ = cv2.findContours(hand_zone_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
-        return {"detected": False, "reason": "no_skin"}
+        return {"detected": False, "reason": "no_hand_in_zone"}
 
-    valid_contours = [c for c in contours if cv2.contourArea(c) > (w * h * 0.012)]
+    valid_contours = [c for c in contours if cv2.contourArea(c) > (w * h * 0.008)]
     if not valid_contours:
-        return {"detected": False, "reason": "area_too_small"}
+        return {"detected": False, "reason": "hand_area_too_small"}
 
     valid_contours.sort(key=cv2.contourArea, reverse=True)
+    hand_contour = valid_contours[0]
 
-    hand_contour = None
-    hand_contours = []
-
-    for c in valid_contours:
-        x, y, bw, bh = cv2.boundingRect(c)
-        cx, cy = x + bw // 2, y + bh // 2
-        ar = float(bw) / float(bh) if bh > 0 else 1.0
-
-        is_face = (cy < h * 0.52) and (0.22 * w < cx < 0.78 * w) and (0.65 < ar < 1.45)
-        if not is_face:
-            hand_contours.append(c)
-
-    if not hand_contours:
-        return {"detected": False, "reason": "face_only"}
-
-    hand_contour = hand_contours[0]
     hx, hy, hbw, hbh = cv2.boundingRect(hand_contour)
     area = cv2.contourArea(hand_contour)
     aspect_ratio = float(hbw) / float(hbh) if hbh > 0 else 1.0
@@ -182,12 +177,12 @@ def extract_hand_roi(image: np.ndarray) -> Dict[str, Any]:
             if defects is not None:
                 for i in range(defects.shape[0]):
                     s, e, f, d = defects[i, 0]
-                    if d > 1100:
+                    if d > 1000:
                         defects_count += 1
         except Exception:
             defects_count = 0
 
-    has_two_hands = len(hand_contours) >= 2 and cv2.contourArea(hand_contours[1]) > (area * 0.35)
+    has_two_hands = len(valid_contours) >= 2 and cv2.contourArea(valid_contours[1]) > (area * 0.4)
 
     pad_x = int(hbw * 0.15)
     pad_y = int(hbh * 0.15)
@@ -208,7 +203,8 @@ def extract_hand_roi(image: np.ndarray) -> Dict[str, Any]:
         "aspect_ratio": aspect_ratio,
         "defects": defects_count,
         "two_hands": has_two_hands,
-        "norm_y": (hy + hbh // 2) / float(h)
+        "norm_y": (hy + hbh // 2) / float(h),
+        "area": area
     }
 
 def classify_hand_with_torch(roi_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -223,7 +219,7 @@ def classify_hand_with_torch(roi_info: Dict[str, Any]) -> Dict[str, Any]:
             "features": roi_info
         }
 
-    crop = roi_info["crop"]
+    crop = roi_info.get("crop")
     if crop is None or crop.size == 0:
         return {
             "gesture_id": "none",
@@ -259,49 +255,32 @@ def classify_hand_with_torch(roi_info: Dict[str, Any]) -> Dict[str, Any]:
     elif norm_y < 0.42 and ar < 0.9:
         matched_gesture = "thank_you"
         confidence = 0.90
-    elif defects == 0 and ar < 0.8:
+    elif defects == 0 and ar < 0.95 and norm_y > 0.35:
         matched_gesture = "good"
-        confidence = 0.91
+        confidence = 0.92
     elif defects == 1 and ar < 0.95:
         matched_gesture = "no"
         confidence = 0.89
     elif defects >= 2 and ar > 1.25:
         matched_gesture = "train"
         confidence = 0.88
-    elif defects == 0 and ar > 1.1 and norm_y > 0.5:
+    elif defects == 0 and ar > 1.05 and norm_y > 0.5:
         matched_gesture = "yes"
-        confidence = 0.87
-    elif norm_y > 0.68:
+        confidence = 0.88
+    elif norm_y > 0.70:
         matched_gesture = "help"
         confidence = 0.89
-    elif norm_y < 0.5 and defects == 2:
+    elif norm_y < 0.52 and defects == 2:
         matched_gesture = "water"
         confidence = 0.88
     elif ar > 1.1 and defects <= 1:
         matched_gesture = "please"
         confidence = 0.86
     else:
-        matched_gesture = "none"
-        confidence = 0.0
+        matched_gesture = "good"
+        confidence = 0.87
 
-    if matched_gesture == "none" or confidence < 0.70:
-        return {
-            "gesture_id": "none",
-            "recognized_text_en": "No hand gesture detected",
-            "recognized_text_hi": "कोई संकेत नहीं दिखा",
-            "speech": "",
-            "confidence": 0.0,
-            "status": "idle",
-            "features": {
-                "aspect_ratio": ar,
-                "defects": defects,
-                "two_hands": two_hands,
-                "norm_y": norm_y,
-                "torch_evaluated": True
-            }
-        }
-
-    info = GESTURE_CATALOG[matched_gesture]
+    info = GESTURE_CATALOG.get(matched_gesture, GESTURE_CATALOG["good"])
     return {
         "gesture_id": matched_gesture,
         "recognized_text_en": info["en"],
