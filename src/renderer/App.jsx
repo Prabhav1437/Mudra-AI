@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Header from './components/Header.jsx';
 import Navigation from './components/Navigation.jsx';
 import DashboardTab from './components/DashboardTab.jsx';
 import AudioToIslTab from './components/AudioToIslTab.jsx';
 import IslToSpeechTab from './components/IslToSpeechTab.jsx';
-import AnnouncementsTab from './components/AnnouncementsTab.jsx';
 import DictionaryTab from './components/DictionaryTab.jsx';
-import Footer from './components/Footer.jsx';
 import { MicRecorder } from './utils/audioRecorder.js';
 
 export default function App() {
@@ -17,15 +14,24 @@ export default function App() {
     node: '-',
     platform: '-'
   });
-  const [ipcStatus, setIpcStatus] = useState({ state: 'idle', message: 'Ready to test bridge' });
-  const [backendStatus, setBackendStatus] = useState({ state: 'checking', message: 'Checking backend...' });
+  const [backendStatus, setBackendStatus] = useState({ state: 'checking', message: 'Connecting to FastAPI...' });
   const [speechInput, setSpeechInput] = useState('');
-  const [selectedLang, setSelectedLang] = useState('English');
+  const [selectedLang, setSelectedLang] = useState('Auto Detect');
   const [isTranslating, setIsTranslating] = useState(false);
-  const [demoOutput, setDemoOutput] = useState(null);
+  const [demoOutput, setDemoOutput] = useState({
+    text: 'मेरा नाम प्रभाव है',
+    detected_language: 'hi',
+    language_probability: 0.96,
+    tokens: ['MERA', 'NAM', 'PRABHAV'],
+    gloss: 'MERA NAM PRABHAV [ISL GLOSS]',
+    animations: [
+      { token: 'I / My', type: 'word_sign', label: 'My', hindi: 'मेरा', pose: 'me', duration: 1200 },
+      { token: 'Name', type: 'word_sign', label: 'Name', hindi: 'नाम', pose: 'name', duration: 1200 },
+      { token: 'Prabhav', type: 'fingerspelling', label: 'Prabhav', hindi: 'प्रभाव', pose: 'prabhav', duration: 1200 },
+      { token: 'IS', type: 'word_sign', label: 'IS', hindi: 'है', pose: 'good', duration: 600 }
+    ]
+  });
   const [gestureOutput, setGestureOutput] = useState(null);
-  const [sttTestResult, setSttTestResult] = useState(null);
-  const [isTestingStt, setIsTestingStt] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -36,7 +42,6 @@ export default function App() {
   const timerRef = useRef(null);
 
   const checkBackendHealth = async () => {
-    setBackendStatus({ state: 'checking', message: 'Connecting to FastAPI (port 8000)...' });
     try {
       const res = await fetch('http://127.0.0.1:8000/api/health');
       if (res.ok) {
@@ -46,7 +51,7 @@ export default function App() {
         setBackendStatus({ state: 'offline', message: `FastAPI HTTP ${res.status}` });
       }
     } catch {
-      setBackendStatus({ state: 'offline', message: 'FastAPI Offline (Run npm run backend)' });
+      setBackendStatus({ state: 'offline', message: 'FastAPI Offline' });
     }
   };
 
@@ -62,31 +67,6 @@ export default function App() {
     checkBackendHealth();
   }, []);
 
-  const handleTestIPC = async () => {
-    if (window.electronAPI && typeof window.electronAPI.ping === 'function') {
-      setIpcStatus({ state: 'loading', message: 'Pinging main process...' });
-      const start = performance.now();
-      try {
-        const res = await window.electronAPI.ping();
-        const duration = Math.round(performance.now() - start);
-        setIpcStatus({
-          state: 'success',
-          message: `IPC response: "${res.toUpperCase()}" (${duration}ms)`
-        });
-      } catch (error) {
-        setIpcStatus({
-          state: 'error',
-          message: `Error: ${error.message}`
-        });
-      }
-    } else {
-      setIpcStatus({
-        state: 'error',
-        message: 'Electron IPC API unavailable in web mode'
-      });
-    }
-  };
-
   const handleTranslateDemo = async () => {
     if (!speechInput.trim()) return;
     setIsTranslating(true);
@@ -94,27 +74,23 @@ export default function App() {
       const res = await fetch('http://127.0.0.1:8000/api/audio-to-isl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: speechInput, language: selectedLang })
+        body: JSON.stringify({
+          text: speechInput,
+          language: selectedLang
+        })
       });
       if (res.ok) {
         const data = await res.json();
         setDemoOutput({
+          text: data.original_text,
+          detected_language: data.language,
           tokens: data.tokens,
-          gloss: data.isl_gloss || data.gloss,
-          animations: data.animations || [],
-          source: 'FastAPI ISL Grammar Engine'
+          gloss: data.isl_gloss,
+          animations: data.animations || []
         });
-      } else {
-        throw new Error('Backend failed');
       }
-    } catch {
-      const words = speechInput.trim().split(' ').map((w) => w.toUpperCase());
-      setDemoOutput({
-        tokens: words,
-        gloss: speechInput.toUpperCase() + ' [ISL GLOSS]',
-        animations: words.map((w) => ({ token: w, type: 'word_sign', label: w, hindi: w, pose: 'default', duration: 1000 })),
-        source: 'Client Fallback'
-      });
+    } catch (err) {
+      console.error('Translation error:', err);
     } finally {
       setIsTranslating(false);
     }
@@ -130,20 +106,23 @@ export default function App() {
       setIsProcessingAudio(true);
 
       try {
-        const { arrayBuffer, mimeType, filename } = await recorderRef.current.stop();
+        const recorded = await recorderRef.current.stop();
         let result = null;
+        const rawBuf = recorded?.arrayBuffer || recorded?.buffer;
+        const audioBlob = recorded?.blob || (rawBuf ? new Blob([rawBuf], { type: recorded?.mimeType || 'audio/webm' }) : null);
+        const langCode = selectedLang === 'Hindi' ? 'hi' : selectedLang === 'English' ? 'en' : null;
 
-        if (window.electronAPI && typeof window.electronAPI.transcribeAudioBuffer === 'function') {
+        if (window.electronAPI && typeof window.electronAPI.transcribeAudioBuffer === 'function' && rawBuf) {
           result = await window.electronAPI.transcribeAudioBuffer(
-            arrayBuffer,
-            filename,
-            selectedLang,
-            mimeType
+            rawBuf,
+            'recording.webm',
+            langCode,
+            recorded.mimeType || 'audio/webm'
           );
-        } else {
+        } else if (audioBlob) {
           const form = new FormData();
-          form.append('audio', new Blob([arrayBuffer], { type: mimeType }), filename);
-          if (selectedLang) form.append('language', selectedLang);
+          form.append('audio', audioBlob, 'recording.webm');
+          if (langCode) form.append('language', langCode);
 
           const res = await fetch('http://127.0.0.1:8000/api/stt/transcribe', {
             method: 'POST',
@@ -156,10 +135,12 @@ export default function App() {
         if (result && result.text) {
           setSpeechInput(result.text);
           setDemoOutput({
+            text: result.text,
+            detected_language: result.detected_language,
+            language_probability: result.language_probability,
             tokens: result.tokens,
             gloss: result.isl_gloss || result.gloss,
-            animations: result.animations || [],
-            source: `Whisper STT (${result.detected_language})`
+            animations: result.animations || []
           });
         }
       } catch (err) {
@@ -184,7 +165,7 @@ export default function App() {
         }, 1000);
       } catch (err) {
         console.error('Failed to access microphone:', err);
-        alert(`Microphone access error: ${err.message}`);
+        alert(`Microphone error: ${err.message || 'Permission denied'}`);
       }
     }
   };
@@ -194,7 +175,7 @@ export default function App() {
       const res = await fetch('http://127.0.0.1:8000/api/isl-to-speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gesture_hint: 'namaste' })
+        body: JSON.stringify({ gesture_hint: 'name' })
       });
       if (res.ok) {
         const data = await res.json();
@@ -202,93 +183,84 @@ export default function App() {
       }
     } catch {
       setGestureOutput({
-        gesture_id: 'namaste',
-        recognized_text_en: 'Namaste / Hello',
-        recognized_text_hi: 'नमस्ते',
-        speech: 'Namaste, hello',
-        confidence: 0.95,
+        gesture_id: 'name',
+        recognized_text_en: 'My name is Prabhav',
+        recognized_text_hi: 'मेरा नाम प्रभाव है',
+        speech: 'My name is Prabhav',
+        confidence: 0.92,
         status: 'simulated'
       });
     }
   };
 
-  const handleTestSTT = async () => {
-    setIsTestingStt(true);
-    try {
-      const res = await fetch('http://127.0.0.1:8000/api/stt/test', {
-        method: 'POST'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSttTestResult({ state: 'success', data });
-      } else {
-        throw new Error(`HTTP ${res.status}`);
-      }
-    } catch (err) {
-      setSttTestResult({ state: 'error', message: err.message });
-    } finally {
-      setIsTestingStt(false);
-    }
-  };
-
   return (
-    <div className="relative min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans overflow-hidden">
-      <div className="pointer-events-none fixed -top-24 -right-12 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
-      <div className="pointer-events-none fixed -bottom-24 -left-12 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl" />
-
-      <Header backendStatus={backendStatus} onRefreshBackend={checkBackendHealth} />
-
+    <div className="min-h-screen bg-[#07090E] text-slate-100 flex flex-row overflow-x-hidden font-sans">
       <Navigation activeTab={activeTab} onSelectTab={setActiveTab} />
 
-      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col gap-6">
-        {activeTab === 'overview' && (
-          <DashboardTab
-            versions={versions}
-            ipcStatus={ipcStatus}
-            backendStatus={backendStatus}
-            onTestIpc={handleTestIPC}
-            onRefreshBackend={checkBackendHealth}
-            onNavigate={setActiveTab}
-          />
-        )}
+      <div className="flex-1 min-h-screen flex flex-col overflow-y-auto">
+        <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between bg-[#080C16]/50 backdrop-blur-md sticky top-0 z-30">
+          <div className="flex items-center gap-2 text-xs font-mono font-medium text-slate-400">
+            <span>Mudra AI</span>
+            <span>&bull;</span>
+            <span className="text-white uppercase">{activeTab}</span>
+          </div>
 
-        {activeTab === 'audio-to-isl' && (
-          <AudioToIslTab
-            speechInput={speechInput}
-            setSpeechInput={setSpeechInput}
-            selectedLang={selectedLang}
-            setSelectedLang={setSelectedLang}
-            isTranslating={isTranslating}
-            demoOutput={demoOutput}
-            onTranslate={handleTranslateDemo}
-            isRecording={isRecording}
-            recordingDuration={recordingDuration}
-            audioVolume={audioVolume}
-            onToggleRecord={handleToggleRecord}
-            isProcessingAudio={isProcessingAudio}
-            sttTestResult={sttTestResult}
-            isTestingStt={isTestingStt}
-            onRunSttTest={handleTestSTT}
-          />
-        )}
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
+                backendStatus.state === 'online'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  backendStatus.state === 'online' ? 'bg-emerald-400' : 'bg-amber-400'
+                }`}
+              />
+              {backendStatus.state === 'online' ? 'FastAPI Online' : 'FastAPI Offline'}
+            </span>
+          </div>
+        </header>
 
-        {activeTab === 'isl-to-speech' && (
-          <IslToSpeechTab
-            gestureOutput={gestureOutput}
-            onTestGestureApi={handleTestGestureAPI}
-          />
-        )}
+        <main className="flex-1 p-8 lg:p-10 w-full max-w-6xl mx-auto">
+          {activeTab === 'overview' && (
+            <DashboardTab
+              onSelectTab={setActiveTab}
+              backendStatus={backendStatus}
+            />
+          )}
 
-        {activeTab === 'announcements' && (
-          <AnnouncementsTab />
-        )}
+          {activeTab === 'audio-to-isl' && (
+            <AudioToIslTab
+              speechInput={speechInput}
+              onSpeechInputChange={setSpeechInput}
+              selectedLang={selectedLang}
+              onLangChange={setSelectedLang}
+              isTranslating={isTranslating}
+              onTranslate={handleTranslateDemo}
+              output={demoOutput}
+              isRecording={isRecording}
+              recordingDuration={recordingDuration}
+              audioVolume={audioVolume}
+              onStartRecording={handleToggleRecord}
+              onStopRecording={handleToggleRecord}
+              isProcessingAudio={isProcessingAudio}
+            />
+          )}
 
-        {activeTab === 'dictionary' && (
-          <DictionaryTab />
-        )}
-      </main>
+          {activeTab === 'isl-to-speech' && (
+            <IslToSpeechTab
+              gestureOutput={gestureOutput}
+              onTestGestureApi={handleTestGestureAPI}
+            />
+          )}
 
-      <Footer />
+          {activeTab === 'dictionary' && (
+            <DictionaryTab />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
