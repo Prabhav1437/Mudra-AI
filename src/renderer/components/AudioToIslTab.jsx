@@ -1,6 +1,40 @@
-import React, { useState } from 'react';
-import { Mic, Square, Copy, Check, Hand, Sparkles } from 'lucide-react';
-import SignVisualizer from './SignVisualizer.jsx';
+import React, { useState, useEffect } from 'react';
+import { Mic, Square, Copy, Check, Hand, Sparkles, Play, Pause, SkipBack, SkipForward, RotateCcw, FastForward } from 'lucide-react';
+
+const GIF_MAP = {
+  HELLO: '/isl_dataset/gifs/HELLO.gif',
+  NAMASTE: '/isl_dataset/gifs/HELLO.gif',
+  HELP: '/isl_dataset/gifs/HELP.gif',
+  NAME: '/isl_dataset/gifs/NAME.gif',
+  GOOD: '/isl_dataset/gifs/GOOD.gif',
+  IS: '/isl_dataset/gifs/GOOD.gif',
+  STATION: '/isl_dataset/gifs/STATION.gif',
+  PLEASE: '/isl_dataset/gifs/PLEASE.gif',
+  WELCOME: '/isl_dataset/gifs/WELCOME.gif'
+};
+
+const PHOTO_MAP = {
+  'I / MY': '/isl_dataset/words/ME.jpg',
+  ME: '/isl_dataset/words/ME.jpg',
+  MY: '/isl_dataset/words/MY.jpg',
+  I: '/isl_dataset/words/ME.jpg'
+};
+
+const getAnimImage = (anim) => {
+  if (anim?.image) return anim.image;
+  const token = anim?.token?.trim().toUpperCase();
+  if (gifMap[token]) return gifMap[token];
+  if (photoMap[token]) return photoMap[token];
+  if (token && token.length === 1) {
+    if (/[A-Z]/i.test(token)) return `/isl_dataset/alphabets/${token.toUpperCase()}.jpg`;
+    if (/[0-9]/.test(token)) return `/isl_dataset/digits/${token}.jpg`;
+  }
+  if (token && token.length > 1) {
+    const first = token[0].toUpperCase();
+    if (/[A-Z]/.test(first)) return `/isl_dataset/alphabets/${first}.jpg`;
+  }
+  return '/isl_dataset/words/HELLO.jpg';
+};
 
 export default function AudioToIslTab({
   speechInput,
@@ -18,7 +52,9 @@ export default function AudioToIslTab({
   isProcessingAudio
 }) {
   const [copied, setCopied] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
 
   const handleCopyText = () => {
     const textToCopy = output?.text || speechInput;
@@ -36,6 +72,58 @@ export default function AudioToIslTab({
 
   const tokens = output?.tokens || [];
   const animations = output?.animations || [];
+  const activeAnimation = animations[currentStep] || animations[0] || null;
+
+  useEffect(() => {
+    setCurrentStep(0);
+    setIsPlaying(true);
+  }, [output]);
+
+  useEffect(() => {
+    if (!isPlaying || animations.length <= 1) return;
+    const duration = (activeAnimation?.duration || 1200) / speed;
+    const timer = setTimeout(() => {
+      setCurrentStep((prev) => (prev + 1) % animations.length);
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentStep, animations, speed, activeAnimation]);
+
+  const handlePrev = () => {
+    setIsPlaying(false);
+    setCurrentStep((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setIsPlaying(false);
+    setCurrentStep((prev) => Math.min(animations.length - 1, prev + 1));
+  };
+
+  const handleReplay = () => {
+    setCurrentStep(0);
+    setIsPlaying(true);
+  };
+
+  const toggleSpeed = () => {
+    if (speed === 1) setSpeed(1.5);
+    else if (speed === 1.5) setSpeed(0.5);
+    else setSpeed(1);
+  };
+
+  const resolveImage = (anim) => {
+    if (anim?.image) return anim.image;
+    const t = anim?.token?.trim().toUpperCase();
+    if (GIF_MAP[t]) return GIF_MAP[t];
+    if (PHOTO_MAP[t]) return PHOTO_MAP[t];
+    if (t && t.length === 1) {
+      if (/[A-Z]/i.test(t)) return `/isl_dataset/alphabets/${t.toUpperCase()}.jpg`;
+      if (/[0-9]/.test(t)) return `/isl_dataset/digits/${t}.jpg`;
+    }
+    if (t && t.length > 1) {
+      const firstChar = t[0].toUpperCase();
+      if (/[A-Z]/.test(firstChar)) return `/isl_dataset/alphabets/${firstChar}.jpg`;
+    }
+    return '/isl_dataset/words/HELLO.jpg';
+  };
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -44,7 +132,7 @@ export default function AudioToIslTab({
           Speech to Indian Sign Language
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Speak in English or Hindi and see the ISL translation.
+          Speak in English or Hindi and view authentic ISL sign images and demonstrations.
         </p>
       </div>
 
@@ -183,7 +271,7 @@ export default function AudioToIslTab({
           <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                ISL Translation
+                ISL Translation Signs
               </span>
               {tokens.length > 0 && (
                 <span className="text-[11px] font-mono text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
@@ -196,31 +284,27 @@ export default function AudioToIslTab({
               <div className="space-y-5">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {animations.slice(0, 4).map((anim, idx) => {
-                    const tokenClean = anim.token?.trim().toUpperCase();
-                    const imgSrc = anim.image || (tokenClean && tokenClean.length === 1 && /[A-Z]/.test(tokenClean) ? `/isl_dataset/alphabets/${tokenClean}.jpg` : (tokenClean && /[0-9]/.test(tokenClean) ? `/isl_dataset/digits/${tokenClean}.jpg` : null));
+                    const imgSrc = resolveImage(anim);
+                    const isActive = idx === currentStep;
                     return (
                       <div
                         key={idx}
-                        onClick={() => setActiveStep(idx)}
-                        className={`cursor-pointer rounded-xl bg-slate-50 border p-3 flex flex-col items-center justify-between gap-2 transition-all ${
-                          activeStep === idx
-                            ? 'border-blue-600 bg-blue-50/50 shadow-xs'
+                        onClick={() => {
+                          setIsPlaying(false);
+                          setCurrentStep(idx);
+                        }}
+                        className={`cursor-pointer rounded-xl bg-slate-50 border p-2.5 flex flex-col items-center justify-between gap-2 transition-all ${
+                          isActive
+                            ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-2 ring-blue-300'
                             : 'border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        <div className="w-full h-20 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-blue-600 relative">
-                          {imgSrc ? (
-                            <img
-                              src={imgSrc}
-                              alt={anim.token}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <Hand className="w-8 h-8 stroke-[1.5]" />
-                          )}
+                        <div className="w-full h-20 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-1">
+                          <img
+                            src={imgSrc}
+                            alt={anim.token}
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                         <span className="text-[11px] font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 w-full text-center truncate">
                           {anim.token}
@@ -230,11 +314,111 @@ export default function AudioToIslTab({
                   })}
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                  <SignVisualizer
-                    animationData={output}
-                    currentText={output?.text}
-                  />
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Authentic ISL Sign Display
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
+                      <span>Step {currentStep + 1} of {animations.length}</span>
+                      <span className="px-2 py-0.5 rounded bg-white border border-slate-200 text-blue-700">
+                        {speed}x Speed
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-72 sm:h-80 md:h-[320px] rounded-2xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-4 relative shadow-sm">
+                    <img
+                      key={currentStep}
+                      src={resolveImage(activeAnimation)}
+                      alt={activeAnimation?.token || 'ISL sign'}
+                      className="max-w-full max-h-full object-contain drop-shadow-sm select-none"
+                    />
+
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-md border border-slate-200 text-[10px] font-mono font-bold text-slate-700 shadow-2xs">
+                      {activeAnimation?.type === 'fingerspelling' ? 'FINGERSPELLING' : 'WORD SIGN'}
+                    </div>
+
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-blue-50/95 backdrop-blur-md border border-blue-200 text-[10px] font-mono font-bold text-blue-700 shadow-2xs">
+                      {activeAnimation?.token}
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-2xl font-extrabold text-slate-900 font-mono">
+                        {activeAnimation?.token}
+                      </span>
+                      <span className="text-sm font-semibold text-blue-600">
+                        {activeAnimation?.label}
+                      </span>
+                      <span className="text-sm text-slate-500 font-medium">
+                        ({activeAnimation?.hindi})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={handlePrev}
+                        disabled={currentStep === 0}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700 transition-all"
+                      >
+                        <SkipBack className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                      >
+                        {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                        <span>{isPlaying ? 'Pause' : 'Play'}</span>
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        disabled={currentStep === animations.length - 1}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700 transition-all"
+                      >
+                        <SkipForward className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleReplay}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-all"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={toggleSpeed}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700 hover:bg-slate-200 transition-all flex items-center gap-1"
+                      >
+                        <FastForward className="w-3 h-3 text-blue-600" />
+                        <span>{speed}x</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {animations.map((anim, idx) => {
+                      const isActive = idx === currentStep;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setIsPlaying(false);
+                            setCurrentStep(idx);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
+                            isActive
+                              ? 'bg-blue-600 text-white font-bold shadow-xs'
+                              : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
+                        >
+                          {anim.token}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ) : (
