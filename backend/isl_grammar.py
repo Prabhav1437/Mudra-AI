@@ -191,24 +191,28 @@ def convert_to_isl_gloss(text: str, language: str = "English") -> Dict[str, Any]
         if token in SIGN_VOCABULARY:
             vocab = SIGN_VOCABULARY[token]
             processed_tokens.append(token)
+            img_path = "/isl_dataset/words/HELLO.jpg" if token in ["HELLO", "NAMASTE"] else ("/isl_dataset/words/ME.jpg" if token in ["ME", "MY"] else "/isl_dataset/reference/ISL_Sign_Chart.png")
             animation_sequence.append({
                 "token": token,
                 "type": "word_sign",
                 "label": vocab["label"],
                 "hindi": vocab["hindi"],
                 "pose": vocab["pose"],
+                "image": img_path,
                 "duration": 1200
             })
         else:
             processed_tokens.append(token)
             letters = [char for char in token if char.isalnum()]
             for letter in letters:
+                letter_img = f"/isl_dataset/alphabets/{letter.upper()}.jpg" if letter.isalpha() else f"/isl_dataset/digits/{letter}.jpg"
                 animation_sequence.append({
                     "token": letter,
                     "type": "fingerspelling",
                     "label": f"Letter {letter}",
                     "hindi": letter,
                     "pose": f"letter_{letter.lower()}",
+                    "image": letter_img,
                     "duration": 600
                 })
 

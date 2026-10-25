@@ -83,11 +83,67 @@ def stt_status():
 def get_isl_dictionary():
     letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
     numbers = [str(i) for i in range(0, 10)]
+    dataset_alphabets = {l: f"/isl_dataset/alphabets/{l}.jpg" for l in letters}
+    dataset_digits = {n: f"/isl_dataset/digits/{n}.jpg" for n in numbers}
+    dataset_words = {
+        "HELLO": "/isl_dataset/words/HELLO.jpg",
+        "NAMASTE": "/isl_dataset/words/NAMASTE.jpg",
+        "ME": "/isl_dataset/words/ME.jpg",
+        "MY": "/isl_dataset/words/MY.jpg",
+        "THANK": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "THANKS": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "HELP": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "WATER": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "TRAIN": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "FOOD": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "GOOD": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "YES": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "NO": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "STOP": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "EMERGENCY": "/isl_dataset/reference/ISL_Sign_Chart.png"
+    }
     return {
         "words": SIGN_VOCABULARY,
         "letters": letters,
         "numbers": numbers,
-        "gestures": GESTURE_CATALOG
+        "gestures": GESTURE_CATALOG,
+        "dataset": {
+            "alphabets": dataset_alphabets,
+            "digits": dataset_digits,
+            "words": dataset_words,
+            "chart": "/isl_dataset/reference/ISL_Sign_Chart.png",
+            "model": {
+                "name": "PyTorch ISL Gesture LSTM",
+                "classes": ["HELP", "HI", "I", "LOVE", "OK", "THANK YOU", "WANT", "WATER", "YOU"]
+            }
+        }
+    }
+
+@app.get("/api/isl/dataset")
+def get_isl_dataset():
+    letters = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
+    numbers = [str(i) for i in range(0, 10)]
+    return {
+        "version": "1.0.0",
+        "total_alphabets": 26,
+        "total_digits": 10,
+        "alphabets": {l: f"/isl_dataset/alphabets/{l}.jpg" for l in letters},
+        "digits": {n: f"/isl_dataset/digits/{n}.jpg" for n in numbers},
+        "words": {
+            "HELLO": "/isl_dataset/words/HELLO.jpg",
+            "NAMASTE": "/isl_dataset/words/NAMASTE.jpg",
+            "ME": "/isl_dataset/words/ME.jpg",
+            "MY": "/isl_dataset/words/MY.jpg",
+            "THANK": "/isl_dataset/reference/ISL_Sign_Chart.png",
+            "HELP": "/isl_dataset/reference/ISL_Sign_Chart.png",
+            "WATER": "/isl_dataset/reference/ISL_Sign_Chart.png"
+        },
+        "chart": "/isl_dataset/reference/ISL_Sign_Chart.png",
+        "model": {
+            "name": "PyTorch ISL Gesture LSTM",
+            "weights": "backend/models/sign_lstm_torch.pth",
+            "classes": ["HELP", "HI", "I", "LOVE", "OK", "THANK YOU", "WANT", "WATER", "YOU"]
+        }
     }
 
 @app.get("/api/announcements")
