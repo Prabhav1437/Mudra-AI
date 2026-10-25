@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Search, Sparkles } from 'lucide-react';
+import { BookOpen, Search } from 'lucide-react';
 import SignVisualizer from './SignVisualizer.jsx';
 
 export default function DictionaryTab() {
@@ -58,39 +58,39 @@ export default function DictionaryTab() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="space-y-6 max-w-6xl">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Indian Sign Language Dictionary</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-lg font-bold text-slate-900">Indian Sign Language Dictionary</h2>
+              <p className="text-xs text-slate-500">
                 Interactive reference guide for signs, fingerspelling &amp; numbers
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/10">
-              {[
-                { id: 'words', label: 'Common Signs' },
-                { id: 'letters', label: 'Alphabet (A-Z)' },
-                { id: 'numbers', label: 'Numbers (0-9)' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveCategory(tab.id)}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                    activeCategory === tab.id ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+            {[
+              { id: 'words', label: 'Common Signs' },
+              { id: 'letters', label: 'Alphabet (A-Z)' },
+              { id: 'numbers', label: 'Numbers (0-9)' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCategory(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeCategory === tab.id
+                    ? 'bg-white text-blue-700 shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -99,13 +99,13 @@ export default function DictionaryTab() {
             {activeCategory === 'words' && (
               <>
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search signs in English or Hindi (e.g. Hello, Water, पानी)..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
@@ -118,13 +118,13 @@ export default function DictionaryTab() {
                         onClick={() => handleSelectWord(key, val)}
                         className={`p-3 rounded-xl border text-left transition-all ${
                           isSelected
-                            ? 'bg-purple-600/20 border-purple-500/50 text-white shadow-lg shadow-purple-600/10'
-                            : 'bg-black/30 border-white/5 text-slate-300 hover:bg-white/5 hover:border-white/15'
+                            ? 'bg-blue-50/80 border-blue-400 text-blue-950 shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
                         }`}
                       >
-                        <div className="text-xs font-bold text-white font-mono">{key}</div>
-                        <div className="text-[11px] text-purple-300 mt-0.5">{val.label}</div>
-                        <div className="text-[10px] text-slate-400 font-hindi">{val.hindi}</div>
+                        <div className="text-xs font-bold text-slate-900 font-mono">{key}</div>
+                        <div className="text-[11px] text-blue-700 mt-0.5">{val.label}</div>
+                        <div className="text-[10px] text-slate-500">{val.hindi}</div>
                       </button>
                     );
                   })}
@@ -134,7 +134,7 @@ export default function DictionaryTab() {
 
             {activeCategory === 'letters' && (
               <div className="space-y-3">
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-500">
                   Select any letter to view fingerspelling demonstration:
                 </div>
                 <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
@@ -146,8 +146,8 @@ export default function DictionaryTab() {
                         onClick={() => handleSelectLetter(letter)}
                         className={`p-3 rounded-xl border text-center font-bold font-mono text-base transition-all ${
                           isSelected
-                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-105'
-                            : 'bg-black/30 border-white/5 text-slate-300 hover:bg-white/5 hover:border-white/20'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
                         }`}
                       >
                         {letter}
@@ -160,7 +160,7 @@ export default function DictionaryTab() {
 
             {activeCategory === 'numbers' && (
               <div className="space-y-3">
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-500">
                   Select any digit to view fingerspelling demonstration:
                 </div>
                 <div className="grid grid-cols-5 gap-2.5">
@@ -172,8 +172,8 @@ export default function DictionaryTab() {
                         onClick={() => handleSelectLetter(num)}
                         className={`p-4 rounded-xl border text-center font-bold font-mono text-xl transition-all ${
                           isSelected
-                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-105'
-                            : 'bg-black/30 border-white/5 text-slate-300 hover:bg-white/5 hover:border-white/20'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
                         }`}
                       >
                         {num}
@@ -186,16 +186,16 @@ export default function DictionaryTab() {
           </div>
 
           <div className="lg:col-span-5 space-y-4">
-            <div className="p-4 rounded-xl bg-black/40 border border-white/10">
-              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                 Selected Sign Preview
               </div>
-              <div className="text-lg font-bold text-white mt-1 font-mono">
+              <div className="text-lg font-bold text-slate-900 mt-1 font-mono">
                 {selectedWord}
               </div>
             </div>
 
-            <SignVisualizer animations={previewAnimation} />
+            <SignVisualizer animationData={{ animations: previewAnimation }} />
           </div>
         </div>
       </div>

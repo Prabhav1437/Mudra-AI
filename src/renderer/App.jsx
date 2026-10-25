@@ -194,32 +194,18 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07090E] text-slate-100 flex flex-row overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-row overflow-x-hidden font-sans">
       <Navigation activeTab={activeTab} onSelectTab={setActiveTab} />
 
       <div className="flex-1 min-h-screen flex flex-col overflow-y-auto">
-        <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between bg-[#080C16]/50 backdrop-blur-md sticky top-0 z-30">
-          <div className="flex items-center gap-2 text-xs font-mono font-medium text-slate-400">
-            <span>Mudra AI</span>
-            <span>&bull;</span>
-            <span className="text-white uppercase">{activeTab}</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                backendStatus.state === 'online'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  backendStatus.state === 'online' ? 'bg-emerald-400' : 'bg-amber-400'
-                }`}
-              />
-              {backendStatus.state === 'online' ? 'FastAPI Online' : 'FastAPI Offline'}
+        <header className="h-16 px-8 border-b border-slate-200 flex items-center justify-between bg-white sticky top-0 z-30">
+          <div className="flex items-center gap-2 text-xs font-mono font-medium text-slate-500">
+            <span className="font-semibold text-slate-800">Mudra AI</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+              MVP
             </span>
+            <span>&bull;</span>
+            <span className="text-slate-900 uppercase font-semibold">{activeTab}</span>
           </div>
         </header>
 
