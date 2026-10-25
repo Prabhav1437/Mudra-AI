@@ -11,7 +11,7 @@
     "start": "npm run dev",
     "build": "vite build",
     "preview": "vite preview",
-    "package:dmg": "npm run build && electron-builder --mac dmg --arm64"
+    "package:dmg": "python3 scripts/build_dmg.py"
   },
   "keywords": [
     "electron",

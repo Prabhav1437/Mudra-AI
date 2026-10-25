@@ -2,6 +2,7 @@ import math
 import struct
 import wave
 import io
+import os
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -319,3 +320,11 @@ def translate_isl_to_speech(payload: GestureRecognitionRequest):
         status=result["status"],
         features=result.get("features")
     )
+
+dist_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dist")
+if not os.path.exists(dist_dir):
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+
+if os.path.exists(dist_dir):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=dist_dir, html=True), name="static")
