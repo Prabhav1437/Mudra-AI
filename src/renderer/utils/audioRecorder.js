@@ -92,6 +92,8 @@ export class MicRecorder {
           }
           resolve({
             arrayBuffer,
+            buffer: arrayBuffer,
+            blob,
             mimeType: mime,
             filename: 'mic_recording.webm'
           });
