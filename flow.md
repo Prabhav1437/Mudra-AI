@@ -185,7 +185,6 @@ Mudra-AI/
         │   ├── DashboardTab.jsx
         │   ├── AudioToIslTab.jsx
         │   ├── IslToSpeechTab.jsx
-        │   ├── AnnouncementsTab.jsx
         │   ├── DictionaryTab.jsx
         │   ├── SignVisualizer.jsx
         │   └── Footer.jsx
