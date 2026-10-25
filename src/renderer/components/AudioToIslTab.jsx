@@ -195,24 +195,39 @@ export default function AudioToIslTab({
             {animations.length > 0 ? (
               <div className="space-y-5">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {animations.slice(0, 4).map((anim, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setActiveStep(idx)}
-                      className={`cursor-pointer rounded-xl bg-slate-50 border p-3 flex flex-col items-center justify-between gap-2 transition-all ${
-                        activeStep === idx
-                          ? 'border-blue-600 bg-blue-50/50 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="w-full h-20 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-blue-600">
-                        <Hand className="w-8 h-8 stroke-[1.5]" />
+                  {animations.slice(0, 4).map((anim, idx) => {
+                    const tokenClean = anim.token?.trim().toUpperCase();
+                    const imgSrc = anim.image || (tokenClean && tokenClean.length === 1 && /[A-Z]/.test(tokenClean) ? `/isl_dataset/alphabets/${tokenClean}.jpg` : (tokenClean && /[0-9]/.test(tokenClean) ? `/isl_dataset/digits/${tokenClean}.jpg` : null));
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setActiveStep(idx)}
+                        className={`cursor-pointer rounded-xl bg-slate-50 border p-3 flex flex-col items-center justify-between gap-2 transition-all ${
+                          activeStep === idx
+                            ? 'border-blue-600 bg-blue-50/50 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="w-full h-20 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-blue-600 relative">
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc}
+                              alt={anim.token}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Hand className="w-8 h-8 stroke-[1.5]" />
+                          )}
+                        </div>
+                        <span className="text-[11px] font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 w-full text-center truncate">
+                          {anim.token}
+                        </span>
                       </div>
-                      <span className="text-[11px] font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 w-full text-center truncate">
-                        {anim.token}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">

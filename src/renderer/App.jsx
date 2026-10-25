@@ -25,10 +25,10 @@ export default function App() {
     tokens: ['MERA', 'NAM', 'PRABHAV'],
     gloss: 'MERA NAM PRABHAV [ISL GLOSS]',
     animations: [
-      { token: 'I / My', type: 'word_sign', label: 'My', hindi: 'मेरा', pose: 'me', duration: 1200 },
-      { token: 'Name', type: 'word_sign', label: 'Name', hindi: 'नाम', pose: 'name', duration: 1200 },
-      { token: 'Prabhav', type: 'fingerspelling', label: 'Prabhav', hindi: 'प्रभाव', pose: 'prabhav', duration: 1200 },
-      { token: 'IS', type: 'word_sign', label: 'IS', hindi: 'है', pose: 'good', duration: 600 }
+      { token: 'I / My', type: 'word_sign', label: 'My', hindi: 'मेरा', pose: 'me', image: '/isl_dataset/words/ME.jpg', duration: 1200 },
+      { token: 'Name', type: 'word_sign', label: 'Name', hindi: 'नाम', pose: 'name', image: '/isl_dataset/reference/ISL_Sign_Chart.png', duration: 1200 },
+      { token: 'Prabhav', type: 'fingerspelling', label: 'Prabhav', hindi: 'प्रभाव', pose: 'prabhav', image: '/isl_dataset/alphabets/P.jpg', duration: 1200 },
+      { token: 'IS', type: 'word_sign', label: 'IS', hindi: 'है', pose: 'good', image: '/isl_dataset/reference/ISL_Sign_Chart.png', duration: 600 }
     ]
   });
   const [gestureOutput, setGestureOutput] = useState(null);
